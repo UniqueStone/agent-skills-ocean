@@ -27,18 +27,25 @@ cd skills-ocean
 
 ### 2. Install skills to your project
 
+Both a **Node.js** and a **Bash** installer are provided — use whichever suits your environment:
+
 ```bash
-# Install all skills for all supported agents
+# Node.js version (cross-platform)
 node install.js --target /path/to/your/project
+
+# Bash version (macOS, Linux, WSL, Git Bash)
+./install.sh --target /path/to/your/project
 
 # Install for specific agents
 node install.js --agent cursor,windsurf --target /path/to/your/project
+./install.sh --agent cursor,windsurf --target /path/to/your/project
 
 # Install a single skill
 node install.js --agent cursor --skill design-with-ascii
 
 # Preview without making changes
 node install.js --dry-run
+./install.sh --dry-run
 ```
 
 ### 3. Use the skills in your agent
@@ -55,8 +62,11 @@ node install.js --dry-run
 
 ## Install Script Reference
 
+Both `install.js` and `install.sh` share the same interface:
+
 ```text
 node install.js [options]
+./install.sh [options]
 
 Options:
   --agent <names>    Target agent(s), comma-separated
@@ -76,11 +86,11 @@ Options:
 
 ```bash
 node install.js                                    # All skills, all agents
-node install.js --agent cursor,windsurf            # All skills, specific agents
+./install.sh --agent cursor,windsurf               # All skills, specific agents
 node install.js --skill design-with-ascii          # One skill, all agents
-node install.js --target ~/projects/my-app         # Install to another project
+./install.sh --target ~/projects/my-app            # Install to another project
 node install.js --agent cursor --force             # Force reinstall
-node install.js --uninstall --agent copilot        # Remove skills from Copilot
+./install.sh --uninstall --agent copilot           # Remove skills from Copilot
 node install.js --list                             # List skills and agents
 ```
 
@@ -102,7 +112,7 @@ node install.js --list                             # List skills and agents
    - **Examples** — concrete invocation examples
 
 2. Update the skills table in this README
-3. Run `node install.js --list` to verify the new skill is discovered
+3. Run `node install.js --list` (or `./install.sh --list`) to verify the new skill is discovered
 
 ## How It Works
 
@@ -116,7 +126,8 @@ Each skill is defined as a `SKILL.md` file in a universal format. The install sc
 
 ```text
 skills-ocean/
-├── install.js                          # Universal installer script
+├── install.js                          # Universal installer (Node.js)
+├── install.sh                          # Universal installer (Bash)
 ├── CLAUDE.md                           # Project instructions for Claude Code
 ├── README.md                           # This file
 ├── skills/
