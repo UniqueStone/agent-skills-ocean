@@ -1,0 +1,22 @@
+# Claude Code
+.claude/settings.local.json
+.claude/plans/
+.claude/memory/
+.claude/scheduled_tasks.json
+.claude/worktrees/
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Secrets
+.env
+.env.*
