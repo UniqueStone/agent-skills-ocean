@@ -1,6 +1,6 @@
 # Skills Ocean
 
-A collection of custom skills (slash commands) for Claude Code. Each skill lives in its own directory under `skills/` and is invoked via `/skill-name` in the Claude Code CLI.
+A universal collection of skills for AI coding agents. Each skill lives in its own directory under `skills/` and can be installed to Claude Code, Cursor, Windsurf, GitHub Copilot, Cline, OpenAI Codex, Gemini CLI, and more via the install script.
 
 ## Available Skills
 
@@ -10,11 +10,17 @@ A collection of custom skills (slash commands) for Claude Code. Each skill lives
 
 ## Usage
 
-Invoke any skill in Claude Code using its slash command:
+Invoke any skill in your AI agent using its command syntax. For Claude Code:
 
 ```text
 /design-with-ascii all e-commerce checkout system
 /design-with-ascii prototype login and registration flow
+```
+
+For other agents, install skills first:
+
+```bash
+node install.js --target /path/to/your/project
 ```
 
 ## Skill Directory Structure
@@ -38,4 +44,5 @@ Each skill is a folder containing a `SKILL.md` file that defines:
 
 1. Create a new directory under `skills/` with a descriptive name (kebab-case)
 2. Add a `SKILL.md` file with the skill definition
-3. Update the table in this README with the new skill
+3. Update the table in this README and the root `README.md` with the new skill
+4. Run `node install.js --list` to verify the new skill is discovered

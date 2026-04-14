@@ -4,17 +4,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a **custom skills collection for Claude Code** — a repository of slash commands that extend Claude Code's capabilities. Each skill is a self-contained directory with a `SKILL.md` defining its activation, behavior, outputs, and process.
+This is a **universal AI coding agent skills collection** — a repository of skills that can be installed into any AI coding tool: Claude Code, Cursor, Windsurf, GitHub Copilot, Cline, OpenAI Codex, Gemini CLI, and more.
 
-Skills are invoked in Claude Code via `/skill-name`. Example: `/design-with-ascii all e-commerce checkout system`.
+Skills are defined in a universal format (`SKILL.md`) and converted to each agent's native format by the install script (`install.js`).
 
 ## Repository Structure
 
 ```text
-skills/
-├── README.md                  # Skills index and usage guide
-└── {skill-name}/
-    └── SKILL.md               # Skill definition (the only required file per skill)
+skills-ocean/
+├── install.js                          # Universal installer script
+├── CLAUDE.md                           # This file
+├── README.md                           # Project documentation
+├── skills/
+│   ├── README.md                       # Skills index
+│   └── {skill-name}/
+│       └── SKILL.md                    # Skill definition
 ```
 
 ## Skill Definition Convention
@@ -31,8 +35,23 @@ Every skill lives in `skills/{kebab-case-name}/SKILL.md` and must include these 
 ## When Adding a New Skill
 
 1. Create `skills/{name}/SKILL.md` following the convention above
-2. Update the skills table in `skills/README.md`
+2. Update the skills table in `README.md` and `skills/README.md`
 3. Keep SKILL.md self-contained — no external file dependencies
+4. Run `node install.js --list` to verify the skill is discovered
+
+## Supported Agent Targets
+
+The install script (`install.js`) converts skills to each agent's native format:
+
+| Agent          | Output Location                    | Format    |
+|----------------|------------------------------------|-----------|
+| Claude Code    | `skills/{name}/SKILL.md`           | Direct    |
+| Cursor         | `.cursor/rules/{name}.mdc`         | MDC       |
+| Windsurf       | `.windsurf/rules/{name}.mdc`       | MDC       |
+| GitHub Copilot | `.github/copilot-instructions.md`  | Injected  |
+| Cline          | `.clinerules/{name}.md`            | Direct    |
+| OpenAI Codex   | `AGENTS.md`                        | Injected  |
+| Gemini CLI     | `GEMINI.md`                        | Injected  |
 
 ## Linting
 

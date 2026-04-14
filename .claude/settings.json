@@ -1,7 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "WebSearch"
+      "WebSearch",
+      "Bash(node install.js --list)",
+      "Bash(node install.js --dry-run --target /tmp/test-skills)",
+      "Bash(node install.js --help)",
+      "Bash(node install.js --dry-run --agent claude-code,cursor,copilot)"
+    ],
+    "additionalDirectories": [
+      "\\tmp"
     ]
   }
 }
