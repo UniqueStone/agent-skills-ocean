@@ -13,12 +13,14 @@ Skills are defined in a universal format (`SKILL.md`) and converted to each agen
 ```text
 skills-ocean/
 ├── install.js                          # Universal installer script
+├── score.js                            # Skill quality scoring + HTML reports
 ├── CLAUDE.md                           # This file
 ├── README.md                           # Project documentation
 ├── skills/
 │   ├── README.md                       # Skills index
 │   └── {skill-name}/
 │       └── SKILL.md                    # Skill definition
+└── reports/                            # Generated score reports (gitignored)
 ```
 
 ## Skill Definition Convention
@@ -38,6 +40,7 @@ Every skill lives in `skills/{kebab-case-name}/SKILL.md` and must include these 
 2. Update the skills table in `README.md` and `skills/README.md`
 3. Keep SKILL.md self-contained — no external file dependencies
 4. Run `node install.js --list` to verify the skill is discovered
+5. Run `node score.js <skill-name>` to generate a quality score report (HTML)
 
 ## Supported Agent Targets
 

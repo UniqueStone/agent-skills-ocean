@@ -96,9 +96,10 @@ node install.js --list                             # List skills and agents
 
 ## Available Skills
 
-| Skill             | Description                                                                     |
-|-------------------|---------------------------------------------------------------------------------|
-| Design with ASCII | Requirement analysis, UI prototypes, UML, architecture, and DB design in ASCII  |
+| Skill              | Description                                                                      |
+|--------------------|----------------------------------------------------------------------------------|
+| Design with ASCII  | Requirement analysis, UI prototypes, UML, architecture, and DB design in ASCII   |
+| Skill Optimizer    | Analyzes and improves other skills to maximize their Skillscore quality rating   |
 
 ## Creating a New Skill
 
@@ -113,6 +114,42 @@ node install.js --list                             # List skills and agents
 
 2. Update the skills table in this README
 3. Run `node install.js --list` (or `./install.sh --list`) to verify the new skill is discovered
+4. A quality score report is generated automatically in `reports/` when installing
+
+## Skill Quality Scoring
+
+Skills are automatically evaluated using [Skillscore](https://github.com/joeynyc/skillscore) when installed. Scores are based on 7 weighted categories:
+
+| Category                | Weight | Criteria                                                  |
+|-------------------------|--------|-----------------------------------------------------------|
+| Identity & Metadata     | 20%    | YAML frontmatter, valid name/description format           |
+| Conciseness             | 15%    | Body under 500 lines, progressive disclosure              |
+| Clarity & Instructions  | 15%    | Workflow steps, consistent terminology, code examples     |
+| Routing & Scope         | 15%    | Clear WHAT+WHEN, negative routing, domain vocabulary      |
+| Robustness              | 10%    | Error handling, validation steps, dependency checks       |
+| Safety & Security       | 15%    | No destructive commands, no secret exfiltration risks     |
+| Portability & Standards | 10%    | Cross-platform paths, MCP format compliance               |
+
+### Scoring Commands
+
+```bash
+# Score all skills
+node score.js --all
+
+# Score a single skill
+node score.js design-with-ascii
+
+# Custom output path
+node score.js design-with-ascii --output ./my-report.html
+
+# Skip scoring during install
+node install.js --skip-score
+
+# Score only, no installation
+node install.js --score-only
+```
+
+HTML reports are generated in the `reports/` directory.
 
 ## How It Works
 
@@ -128,12 +165,15 @@ Each skill is defined as a `SKILL.md` file in a universal format. The install sc
 skills-ocean/
 ├── install.js                          # Universal installer (Node.js)
 ├── install.sh                          # Universal installer (Bash)
+├── score.js                            # Skill quality scoring with HTML reports
+├── package.json                        # Dependencies (skillscore)
 ├── CLAUDE.md                           # Project instructions for Claude Code
 ├── README.md                           # This file
 ├── skills/
 │   ├── README.md                       # Skills index
 │   └── {skill-name}/
 │       └── SKILL.md                    # Skill definition
+└── reports/                            # Generated score reports (gitignored)
 ```
 
 ## License

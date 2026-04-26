@@ -1,0 +1,14 @@
+{
+  "name": "agent-skills-ocean",
+  "version": "1.0.0",
+  "description": "Universal AI coding agent skills collection with quality scoring",
+  "scripts": {
+    "install:all": "node install.js",
+    "score": "node score.js",
+    "score:all": "node score.js --all",
+    "install:score": "node install.js && node score.js --all"
+  },
+  "dependencies": {
+    "skillscore": "^2.0.2"
+  }
+}

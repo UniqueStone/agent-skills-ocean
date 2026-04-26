@@ -68,8 +68,18 @@ function discoverSkills(filterName) {
 }
 
 function extractDescription(content) {
+  let inFrontmatter = false;
   for (const line of content.split('\n')) {
     const t = line.trim();
+    if (!inFrontmatter && t === '---') {
+      inFrontmatter = true;
+      continue;
+    }
+    if (inFrontmatter && t === '---') {
+      inFrontmatter = false;
+      continue;
+    }
+    if (inFrontmatter) continue;
     if (!t || t.startsWith('#')) continue;
     return t.replace(/\s+/g, ' ').substring(0, 120);
   }
@@ -386,6 +396,8 @@ function parseArgs(argv) {
     force: false,
     dryRun: false,
     uninstall: false,
+    skipScore: false,
+    scoreOnly: false,
     help: false,
   };
 
@@ -411,6 +423,12 @@ function parseArgs(argv) {
         break;
       case '--uninstall':
         args.uninstall = true;
+        break;
+      case '--skip-score':
+        args.skipScore = true;
+        break;
+      case '--score-only':
+        args.scoreOnly = true;
         break;
       case '-h':
       case '--help':
@@ -442,6 +460,8 @@ Options:
   --force            Overwrite existing files
   --dry-run          Preview changes without writing
   --uninstall        Remove installed skills instead
+  --skip-score       Skip skill quality scoring after installation
+  --score-only       Only run scoring, skip installation
   -h, --help         Show this help
 
 Examples:
@@ -452,6 +472,8 @@ Examples:
   node install.js --agent cursor --force             # Force reinstall for Cursor
   node install.js --uninstall --agent copilot        # Remove skills from Copilot
   node install.js --list                             # Show available skills
+  node install.js --skip-score                       # Install without scoring
+  node install.js --score-only                       # Score only, no installation
 `.trim());
 }
 
@@ -490,7 +512,28 @@ function resolveAgentKeys(requested) {
   return keys;
 }
 
+function runScore(skillFilter) {
+  const { execSync } = require('child_process');
+  const scoreScript = path.join(__dirname, 'score.js');
+  if (!fs.existsSync(scoreScript)) return;
+
+  const cmd = skillFilter
+    ? `node "${scoreScript}" ${skillFilter}`
+    : `node "${scoreScript}" --all`;
+
+  try {
+    execSync(cmd, { stdio: 'inherit', cwd: __dirname });
+  } catch (err) {
+    console.error('Warning: Scoring failed (install skillscore with: npm install)');
+  }
+}
+
 function runInstall(args) {
+  if (args.scoreOnly) {
+    runScore(args.skill);
+    return;
+  }
+
   const targetDir = path.resolve(args.target);
 
   if (!fs.existsSync(targetDir)) {
@@ -526,7 +569,15 @@ function runInstall(args) {
     console.log('(dry-run — no files were changed)');
   }
 
-  console.log('Done!\n');
+  console.log('Done!');
+
+  // Run scoring after successful install (unless skipped or uninstalling)
+  if (!args.skipScore && !args.uninstall && !args.dryRun) {
+    console.log('\nGenerating skill quality reports...');
+    runScore(args.skill);
+  } else {
+    console.log();
+  }
 }
 
 // ─── Main ────────────────────────────────────────────────────────────

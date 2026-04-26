@@ -1,6 +1,17 @@
+---
+name: design-with-ascii
+description: Generates ASCII visual designs when invoked for requirement analysis, UI prototypes, UML diagrams, architecture layouts, or database schemas. Produces structured technical diagrams rendered entirely in ASCII art for documentation and planning.
+---
+
 # Design with ASCII
 
 A visual design skill that acts as Product Manager, Business Analyst, and Software Architect to produce requirement analysis, UI prototypes, UML diagrams, architecture designs, and database schemas — all rendered in ASCII art.
+
+## When NOT to Use
+
+- Do not use for generating actual source code — this skill produces visual diagrams and documentation only
+- Do not use when a graphical tool (Figma, draw.io, Lucidchart) is available and the audience expects rendered output
+- Do not use for performance profiling, load testing plans, or runtime metrics — this is a design and planning tool
 
 ## Activation
 
@@ -366,13 +377,19 @@ When invoked, follow this workflow:
    - Add alternative designs
    - Export as a structured document
 
+## Dependencies
+
+- A terminal or markdown renderer that supports monospace fonts for ASCII diagram display
+- Verify rendering with: view the output in a fixed-width context (terminal, code block, or monospace editor)
+
 ## Guidelines
 
-- **Consistency**: Use the same naming conventions across all diagrams (e.g., if `User` is used in UML, use `users` in the DB table)
+- **Consistency**: Must use the same naming conventions across all diagrams (e.g., if `User` is used in UML, use `users` in the DB table)
 - **Clarity**: Keep diagrams under 60 characters wide when possible for readability in terminals
 - **Completeness**: Every arrow in a diagram must have a label; every table must have a primary key
-- **Progressive detail**: Start with high-level overview, then offer to drill down into specific areas
+- **Progressive detail**: Start with high-level overview, then consider drilling down into specific areas
 - **Ask before assuming**: If the domain is unfamiliar, ask about business rules before designing
+- **Flexibility**: Optionally adjust diagram complexity based on the audience — simpler diagrams for stakeholders, more detailed for engineers
 
 ## Examples
 

@@ -5,10 +5,34 @@
       "Bash(node install.js --list)",
       "Bash(node install.js --dry-run --target /tmp/test-skills)",
       "Bash(node install.js --help)",
-      "Bash(node install.js --dry-run --agent claude-code,cursor,copilot)"
+      "Bash(node install.js --dry-run --agent claude-code,cursor,copilot)",
+      "Bash(chmod +x \"d:/Code/my_project/angent-skills-ocean/install.sh\")",
+      "Bash(bash install.sh --help)",
+      "Bash(bash install.sh --list)",
+      "Bash(bash install.sh --dry-run --agent cursor,copilot,cline)",
+      "Bash(bash install.sh --dry-run --agent copilot)",
+      "Bash(mkdir -p /tmp/skills-test)",
+      "Bash(bash install.sh --target /tmp/skills-test --agent cursor,copilot,codex)",
+      "Bash(bash install.sh --uninstall --target /tmp/skills-test --agent cursor,copilot,codex)",
+      "Bash(node install.js --dry-run --agent claude-code,cursor)",
+      "Bash(bash install.sh --dry-run --agent claude-code,cursor)",
+      "Bash(ls D:\\\\\\\\Code\\\\\\\\opensource\\\\\\\\joeynyc\\\\\\\\skillscore\\\\\\\\dist/)",
+      "Bash(cd D:\\\\\\\\Code\\\\\\\\opensource\\\\\\\\joeynyc\\\\\\\\skillscore)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(node score.js design-with-ascii)",
+      "Bash(npm view *)",
+      "Bash(node score.js --all)",
+      "Bash(node install.js --skill design-with-ascii --agent claude-code --dry-run)",
+      "Bash(node install.js --score-only)",
+      "Bash(node install.js --skill design-with-ascii --agent claude-code --force --skip-score)",
+      "Bash(start \"\" \"D:\\\\Code\\\\my_project\\\\angent-skills-ocean\\\\reports\\\\design-with-ascii-score.html\")",
+      "Bash(node install.js --skill design-with-ascii --agent claude-code --force)",
+      "Bash(node score.js skill-optimizer)"
     ],
     "additionalDirectories": [
-      "\\tmp"
+      "D:/Code/opensource/joeynyc/skillscore",
+      "d:\\d\\Code\\my_project\\angent-skills-ocean"
     ]
   }
 }

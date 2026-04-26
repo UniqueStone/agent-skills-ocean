@@ -20,3 +20,11 @@ Desktop.ini
 # Secrets
 .env
 .env.*
+
+# Dependencies
+node_modules/
+
+# Generated reports
+reports/
+
+angent-skills-ocean.code-workspace
