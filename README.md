@@ -6,23 +6,28 @@ Define skills in a universal format, then install them to your favorite AI codin
 
 ## Supported Agents
 
-| Agent            | Install Target                  | Format                  |
-|------------------|---------------------------------|-------------------------|
-| Claude Code      | `skills/`                       | SKILL.md                |
-| Cursor           | `.cursor/rules/`                | .mdc                    |
-| Windsurf         | `.windsurf/rules/`              | .mdc                    |
-| GitHub Copilot   | `.github/`                      | copilot-instructions.md |
-| Cline            | `.clinerules/`                  | .md                     |
-| OpenAI Codex     | `./`                            | AGENTS.md               |
-| Gemini CLI       | `./`                            | GEMINI.md               |
+| `--agent` Value | Agent | Install Target | Format | Type |
+|---|---|---|---|---|
+| `claude-code` | Claude Code | `.claude/skills/` | SKILL.md | Native |
+| `cursor` | Cursor | `.cursor/rules/` | .mdc | MDC |
+| `windsurf` | Windsurf | `.windsurf/rules/` | .mdc | MDC |
+| `copilot` | GitHub Copilot | `.github/` | copilot-instructions.md | Injection |
+| `cline` | Cline | `.clinerules/` | .md | Direct copy |
+| `codex` | OpenAI Codex | `./` | AGENTS.md | Injection |
+| `gemini` | Gemini CLI | `./` | GEMINI.md | Injection |
+| `opencode` | OpenCode | `.opencode/skills/` | SKILL.md | Native |
+| `kilo` | Kilo Code | `.kilo/skills/` | SKILL.md | Native |
+| `openspec` | OpenSpec | `openspec/` | AGENTS.md | Injection |
+
+> **10 agents supported!** Native agents (Claude Code, OpenCode, Kilo Code) use the Agent Skills open specification `SKILL.md` format directly — zero conversion overhead.
 
 ## Quick Start
 
 ### 1. Clone this repository
 
 ```bash
-git clone https://github.com/your-username/skills-ocean.git
-cd skills-ocean
+git clone https://github.com/UniqueStone/agent-skills-ocean.git
+cd agent-skills-ocean
 ```
 
 ### 2. Install skills to your project
@@ -38,7 +43,9 @@ node install.js --target /path/to/your/project
 
 # Install for specific agents
 node install.js --agent cursor,windsurf --target /path/to/your/project
-./install.sh --agent cursor,windsurf --target /path/to/your/project
+
+# Install for all native SKILL.md agents
+node install.js --agent claude-code,opencode,kilo --target /path/to/your/project
 
 # Install a single skill
 node install.js --agent cursor --skill design-with-ascii
@@ -50,15 +57,18 @@ node install.js --dry-run
 
 ### 3. Use the skills in your agent
 
-| Agent            | How to invoke                                           |
-|------------------|---------------------------------------------------------|
-| Claude Code      | `/skill-name` in the CLI                                |
-| Cursor           | Reference `@skill-name` in chat                         |
-| Windsurf         | Reference the rule in chat                              |
-| GitHub Copilot   | Skills are included in context automatically            |
-| Cline            | Mention the skill in your prompt                        |
-| OpenAI Codex     | Skills are included in AGENTS.md context                |
-| Gemini CLI       | Skills are included in GEMINI.md context                |
+| Agent | How to invoke |
+|---|---|
+| Claude Code | Skills auto-discovered in `.claude/skills/`; agent loads on demand |
+| Cursor | Reference `@skill-name` in chat |
+| Windsurf | Reference the rule in chat |
+| GitHub Copilot | Skills included in context automatically |
+| Cline | Mention the skill in your prompt |
+| OpenAI Codex | Skills included in AGENTS.md context |
+| Gemini CLI | Skills included in GEMINI.md context |
+| OpenCode | Skills auto-discovered in `.opencode/skills/`; use `skill` tool |
+| Kilo Code | Skills auto-discovered in `.kilo/skills/`; agent loads on demand |
+| OpenSpec | Skills included in `openspec/AGENTS.md` context |
 
 ## Install Script Reference
 
@@ -70,7 +80,8 @@ node install.js [options]
 
 Options:
   --agent <names>    Target agent(s), comma-separated
-                     Choices: claude-code, cursor, windsurf, copilot, cline, codex, gemini
+                     Choices: claude-code, cursor, windsurf, copilot, cline,
+                              codex, gemini, opencode, kilo, openspec
                      Default: all agents
 
   --target <path>    Target project directory (default: .)
@@ -79,27 +90,29 @@ Options:
   --force            Overwrite existing files
   --dry-run          Preview changes without writing
   --uninstall        Remove installed skills instead
-  -h, --help         Show help
+  -h, --help         Show this help
 ```
 
 ### Examples
 
 ```bash
-node install.js                                    # All skills, all agents
-./install.sh --agent cursor,windsurf               # All skills, specific agents
-node install.js --skill design-with-ascii          # One skill, all agents
-./install.sh --target ~/projects/my-app            # Install to another project
-node install.js --agent cursor --force             # Force reinstall
-./install.sh --uninstall --agent copilot           # Remove skills from Copilot
-node install.js --list                             # List skills and agents
+node install.js                                        # All skills, all agents
+./install.sh --agent cursor,windsurf                   # All skills, specific agents
+node install.js --agent claude-code,opencode,kilo      # Native SKILL.md agents only
+./install.sh --skill design-with-ascii                 # One skill, all agents
+node install.js --target ~/projects/my-app             # Install to another project
+./install.sh --agent cursor --force                    # Force reinstall
+node install.js --uninstall --agent copilot            # Remove skills from Copilot
+./install.sh --list                                    # List skills and agents
 ```
 
 ## Available Skills
 
-| Skill              | Description                                                                      |
-|--------------------|----------------------------------------------------------------------------------|
-| Design with ASCII  | Requirement analysis, UI prototypes, UML, architecture, and DB design in ASCII   |
-| Skill Optimizer    | Analyzes and improves other skills to maximize their Skillscore quality rating   |
+| Skill | Description |
+|---|---|
+| Design with ASCII | Requirement analysis, UI prototypes, UML, architecture, and DB design in ASCII |
+| Resume Optimizer | Reviews and optimizes IT resumes with 10-dimension scoring |
+| Skill Optimizer | Analyzes and improves other skills to maximize their Skillscore quality rating |
 
 ## Creating a New Skill
 
@@ -120,15 +133,15 @@ node install.js --list                             # List skills and agents
 
 Skills are automatically evaluated using [Skillscore](https://github.com/joeynyc/skillscore) when installed. Scores are based on 7 weighted categories:
 
-| Category                | Weight | Criteria                                                  |
-|-------------------------|--------|-----------------------------------------------------------|
-| Identity & Metadata     | 20%    | YAML frontmatter, valid name/description format           |
-| Conciseness             | 15%    | Body under 500 lines, progressive disclosure              |
-| Clarity & Instructions  | 15%    | Workflow steps, consistent terminology, code examples     |
-| Routing & Scope         | 15%    | Clear WHAT+WHEN, negative routing, domain vocabulary      |
-| Robustness              | 10%    | Error handling, validation steps, dependency checks       |
-| Safety & Security       | 15%    | No destructive commands, no secret exfiltration risks     |
-| Portability & Standards | 10%    | Cross-platform paths, MCP format compliance               |
+| Category | Weight | Criteria |
+|---|---|---|
+| Identity & Metadata | 20% | YAML frontmatter, valid name/description format |
+| Conciseness | 15% | Body under 500 lines, progressive disclosure |
+| Clarity & Instructions | 15% | Workflow steps, consistent terminology, code examples |
+| Routing & Scope | 15% | Clear WHAT+WHEN, negative routing, domain vocabulary |
+| Robustness | 10% | Error handling, validation steps, dependency checks |
+| Safety & Security | 15% | No destructive commands, no secret exfiltration risks |
+| Portability & Standards | 10% | Cross-platform paths, MCP format compliance |
 
 ### Scoring Commands
 
@@ -153,16 +166,17 @@ HTML reports are generated in the `reports/` directory.
 
 ## How It Works
 
-Each skill is defined as a `SKILL.md` file in a universal format. The install script converts each skill to the appropriate format for each AI agent:
+Each skill is defined as a `SKILL.md` file following the [Agent Skills open specification](https://agentskills.io/). The install script converts each skill to the appropriate format for each AI agent:
 
-- **File-based agents** (Cursor, Windsurf, Cline) — each skill becomes a separate rule file in the agent's rules directory
-- **Single-file agents** (Copilot, Codex, Gemini) — skills are injected into the agent's instruction file with comment markers for safe updates
-- **Native agents** (Claude Code) — skills are copied directly to the project's `skills/` directory
+- **Native agents** (Claude Code, OpenCode, Kilo Code) — skills are copied directly to the agent's native `skills/` directory, maintaining the `SKILL.md` format with zero conversion
+- **MDC-format agents** (Cursor, Windsurf) — each skill becomes a separate `.mdc` rule file with YAML frontmatter wrapper
+- **File-based agents** (Cline) — each skill becomes a separate `.md` file in the agent's rules directory
+- **Single-file agents** (Copilot, Codex, Gemini, OpenSpec) — skills are injected into the agent's instruction file with HTML comment markers for safe updates and removal
 
 ## Repository Structure
 
 ```text
-skills-ocean/
+agent-skills-ocean/
 ├── install.js                          # Universal installer (Node.js)
 ├── install.sh                          # Universal installer (Bash)
 ├── score.js                            # Skill quality scoring with HTML reports
@@ -172,7 +186,7 @@ skills-ocean/
 ├── skills/
 │   ├── README.md                       # Skills index
 │   └── {skill-name}/
-│       └── SKILL.md                    # Skill definition
+│       └── SKILL.md                    # Skill definition (Agent Skills spec)
 └── reports/                            # Generated score reports (gitignored)
 ```
 

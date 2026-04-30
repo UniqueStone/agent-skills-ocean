@@ -3,7 +3,8 @@
 # Skills Ocean — Universal AI Agent Skills Installer
 #
 # Installs skills to various AI coding agents:
-#   Claude Code, Cursor, Windsurf, GitHub Copilot, Cline, Codex, Gemini CLI
+#   Claude Code, Cursor, Windsurf, GitHub Copilot, Cline, OpenAI Codex,
+#   Gemini CLI, OpenCode, Kilo Code, OpenSpec
 #
 # Usage:
 #   ./install.sh [options]
@@ -36,8 +37,7 @@ LIST=0
 
 # ─── Agent Registry ───────────────────────────────────────────────────
 
-# Space-separated list of all supported agent keys
-ALL_AGENTS="claude-code cursor windsurf copilot cline codex gemini"
+ALL_AGENTS="claude-code cursor windsurf copilot cline codex gemini opencode kilo openspec"
 
 # ─── Utility Functions ────────────────────────────────────────────────
 
@@ -60,17 +60,36 @@ ensure_dir() {
     mkdir -p "$1"
 }
 
-# Extract the first non-heading, non-empty line from a markdown file as a description
+# Extract the description from YAML frontmatter, fallback to first non-heading line
 extract_description() {
     local file="$1"
+    # Try YAML frontmatter description first
+    local desc
+    desc="$(grep -A0 '^description:' "$file" 2>/dev/null | head -1 | sed 's/^description:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+    if [[ -n "$desc" ]]; then
+        echo "${desc:0:120}"
+        return 0
+    fi
+    # Fallback: first non-heading, non-empty, non-frontmatter line
+    local in_fm=0
+    local passed_fm=0
     while IFS= read -r line || [[ -n "$line" ]]; do
-        # Trim leading whitespace
-        local trimmed="${line#"${line%%[![:space:]]*}"}"
-        # Trim trailing whitespace
+        local trimmed
+        trimmed="${line#"${line%%[![:space:]]*}"}"
         trimmed="${trimmed%"${trimmed##*[![:space:]]}"}"
-        # Skip empty lines and headings
+        if [[ "$passed_fm" -eq 0 ]]; then
+            if [[ "$in_fm" -eq 0 && "$trimmed" == "---" ]]; then
+                in_fm=1
+                continue
+            fi
+            if [[ "$in_fm" -eq 1 && "$trimmed" == "---" ]]; then
+                in_fm=0
+                passed_fm=1
+                continue
+            fi
+            [[ "$in_fm" -eq 1 ]] && continue
+        fi
         [[ -z "$trimmed" || "$trimmed" == \#* ]] && continue
-        # Truncate to 120 chars
         echo "${trimmed:0:120}"
         return 0
     done < "$file"
@@ -79,7 +98,6 @@ extract_description() {
 
 # ─── Skill Discovery ─────────────────────────────────────────────────
 
-# Populate SKILL_NAMES array with discovered skill directory names
 SKILL_NAMES=()
 
 discover_skills() {
@@ -108,10 +126,6 @@ discover_skills() {
 
 # ─── File Operations ─────────────────────────────────────────────────
 
-# Write content to a file (respecting dry-run and force flags).
-# Usage: write_file <dest_path> <source_file_or_content> [is_content]
-#   If is_content="1", second arg is the content string itself.
-#   Otherwise, second arg is a file path to copy from.
 write_file() {
     local dest="$1"
     local source="$2"
@@ -141,7 +155,6 @@ write_file() {
     return 0
 }
 
-# Remove a file (respecting dry-run flag)
 remove_file() {
     local target="$1"
     local rel
@@ -162,8 +175,6 @@ remove_file() {
     return 1
 }
 
-# Inject a skill section into a single instruction file using HTML markers.
-# Usage: inject_section <file_path> <skill_name> <skill_md_path>
 inject_section() {
     local file="$1"
     local skill_name="$2"
@@ -179,7 +190,6 @@ inject_section() {
         return 0
     fi
 
-    # File doesn't exist — create it
     if [[ ! -f "$file" ]]; then
         ensure_dir "$(dirname "$file")"
         {
@@ -192,14 +202,12 @@ inject_section() {
         return 0
     fi
 
-    # File exists — check for existing markers
     if grep -qF "$start_marker" "$file" 2>/dev/null; then
         if [[ "$FORCE" -ne 1 ]]; then
             info "⚠ Skipped (exists): $rel [$skill_name]"
             return 1
         fi
 
-        # Replace the existing section using line-by-line reconstruction
         local in_section=0
         local tmp="${file}.so.tmp"
         : > "$tmp"
@@ -228,7 +236,6 @@ inject_section() {
         return 0
     fi
 
-    # File exists but no markers — append section
     {
         printf '\n%s\n## %s\n\n' "$start_marker" "$skill_name"
         cat "$skill_md"
@@ -238,9 +245,6 @@ inject_section() {
     return 0
 }
 
-# Remove a skill section from a single instruction file.
-# Deletes the file if nothing meaningful remains.
-# Usage: remove_section <file_path> <skill_name>
 remove_section() {
     local file="$1"
     local skill_name="$2"
@@ -265,7 +269,6 @@ remove_section() {
         return 1
     fi
 
-    # Reconstruct file without the marked section
     local in_section=0
     local tmp="${file}.so.tmp"
     : > "$tmp"
@@ -277,7 +280,6 @@ remove_section() {
         printf '%s\n' "$line" >> "$tmp"
     done < "$file"
 
-    # Check if anything meaningful remains
     local remaining
     remaining="$(grep -v '^[[:space:]]*$' "$tmp" | grep -v '^# Skills Ocean' || true)"
     if [[ -z "$remaining" ]]; then
@@ -297,15 +299,36 @@ install_agent() {
     local agent_key="$1"
 
     case "$agent_key" in
+        # ─── Native SKILL.md agents ───────────────────────────────
         claude-code)
             for name in "${SKILL_NAMES[@]}"; do
                 if [[ "$UNINSTALL" -eq 1 ]]; then
-                    remove_file "$TARGET_DIR/skills/$name/SKILL.md"
+                    remove_file "$TARGET_DIR/.claude/skills/$name/SKILL.md"
                 else
-                    write_file "$TARGET_DIR/skills/$name/SKILL.md" "$SKILLS_DIR/$name/SKILL.md"
+                    write_file "$TARGET_DIR/.claude/skills/$name/SKILL.md" "$SKILLS_DIR/$name/SKILL.md"
                 fi
             done
             ;;
+        opencode)
+            for name in "${SKILL_NAMES[@]}"; do
+                if [[ "$UNINSTALL" -eq 1 ]]; then
+                    remove_file "$TARGET_DIR/.opencode/skills/$name/SKILL.md"
+                else
+                    write_file "$TARGET_DIR/.opencode/skills/$name/SKILL.md" "$SKILLS_DIR/$name/SKILL.md"
+                fi
+            done
+            ;;
+        kilo)
+            for name in "${SKILL_NAMES[@]}"; do
+                if [[ "$UNINSTALL" -eq 1 ]]; then
+                    remove_file "$TARGET_DIR/.kilo/skills/$name/SKILL.md"
+                else
+                    write_file "$TARGET_DIR/.kilo/skills/$name/SKILL.md" "$SKILLS_DIR/$name/SKILL.md"
+                fi
+            done
+            ;;
+
+        # ─── MDC-format agents ────────────────────────────────────
         cursor)
             for name in "${SKILL_NAMES[@]}"; do
                 local dest="$TARGET_DIR/.cursor/rules/${name}.mdc"
@@ -334,6 +357,19 @@ install_agent() {
                 fi
             done
             ;;
+
+        # ─── File-based agents (direct copy) ──────────────────────
+        cline)
+            for name in "${SKILL_NAMES[@]}"; do
+                if [[ "$UNINSTALL" -eq 1 ]]; then
+                    remove_file "$TARGET_DIR/.clinerules/${name}.md"
+                else
+                    write_file "$TARGET_DIR/.clinerules/${name}.md" "$SKILLS_DIR/$name/SKILL.md"
+                fi
+            done
+            ;;
+
+        # ─── Injection-based agents (single instruction file) ─────
         copilot)
             local instr_file="$TARGET_DIR/.github/copilot-instructions.md"
             for name in "${SKILL_NAMES[@]}"; do
@@ -341,15 +377,6 @@ install_agent() {
                     remove_section "$instr_file" "$name"
                 else
                     inject_section "$instr_file" "$name" "$SKILLS_DIR/$name/SKILL.md"
-                fi
-            done
-            ;;
-        cline)
-            for name in "${SKILL_NAMES[@]}"; do
-                if [[ "$UNINSTALL" -eq 1 ]]; then
-                    remove_file "$TARGET_DIR/.clinerules/${name}.md"
-                else
-                    write_file "$TARGET_DIR/.clinerules/${name}.md" "$SKILLS_DIR/$name/SKILL.md"
                 fi
             done
             ;;
@@ -373,6 +400,16 @@ install_agent() {
                 fi
             done
             ;;
+        openspec)
+            local openspec_file="$TARGET_DIR/openspec/AGENTS.md"
+            for name in "${SKILL_NAMES[@]}"; do
+                if [[ "$UNINSTALL" -eq 1 ]]; then
+                    remove_section "$openspec_file" "$name"
+                else
+                    inject_section "$openspec_file" "$name" "$SKILLS_DIR/$name/SKILL.md"
+                fi
+            done
+            ;;
         *)
             die "Unknown agent \"$agent_key\". Available: $ALL_AGENTS"
             ;;
@@ -390,7 +427,8 @@ Usage:
 
 Options:
   --agent <names>    Target agent(s), comma-separated
-                     Choices: claude-code, cursor, windsurf, copilot, cline, codex, gemini
+                     Choices: claude-code, cursor, windsurf, copilot,
+                              cline, codex, gemini, opencode, kilo, openspec
                      Default: all agents
 
   --target <path>    Target project directory (default: .)
@@ -402,13 +440,14 @@ Options:
   -h, --help         Show this help
 
 Examples:
-  ./install.sh                                    # Install all skills for all agents
-  ./install.sh --agent cursor,windsurf            # Install for specific agents
-  ./install.sh --skill design-with-ascii          # Install a specific skill
-  ./install.sh --target ~/my-project              # Install to another project
-  ./install.sh --agent cursor --force             # Force reinstall for Cursor
-  ./install.sh --uninstall --agent copilot        # Remove skills from Copilot
-  ./install.sh --list                             # Show available skills
+  ./install.sh                                           # All skills, all agents
+  ./install.sh --agent cursor,windsurf                   # All skills, specific agents
+  ./install.sh --agent claude-code,opencode,kilo         # Native SKILL.md agents
+  ./install.sh --skill design-with-ascii                 # One skill, all agents
+  ./install.sh --target ~/my-project                     # Install to another project
+  ./install.sh --agent cursor --force                    # Force reinstall for Cursor
+  ./install.sh --uninstall --agent copilot               # Remove skills from Copilot
+  ./install.sh --list                                    # Show available skills
 HELP
 }
 
@@ -430,13 +469,16 @@ show_list() {
     echo ""
     echo "Supported Agents:"
     echo "------------------------------------------------------------"
-    printf "  %-16s %-20s %s\n" "claude-code" "Claude Code" "Anthropic Claude Code CLI"
-    printf "  %-16s %-20s %s\n" "cursor" "Cursor" "AI-first code editor"
-    printf "  %-16s %-20s %s\n" "windsurf" "Windsurf" "AI-powered IDE by Codeium"
-    printf "  %-16s %-20s %s\n" "copilot" "GitHub Copilot" "AI pair programmer"
-    printf "  %-16s %-20s %s\n" "cline" "Cline" "Autonomous AI coding agent"
-    printf "  %-16s %-20s %s\n" "codex" "OpenAI Codex" "OpenAI coding agent CLI"
-    printf "  %-16s %-20s %s\n" "gemini" "Gemini CLI" "Google Gemini CLI tool"
+    printf "  %-16s %-20s %s\n" "claude-code" "Claude Code" "Anthropic Claude Code CLI (.claude/skills/)"
+    printf "  %-16s %-20s %s\n" "cursor" "Cursor" "AI-first code editor (.cursor/rules/)"
+    printf "  %-16s %-20s %s\n" "windsurf" "Windsurf" "AI-powered IDE (.windsurf/rules/)"
+    printf "  %-16s %-20s %s\n" "copilot" "GitHub Copilot" "AI pair programmer (.github/)"
+    printf "  %-16s %-20s %s\n" "cline" "Cline" "Autonomous AI agent (.clinerules/)"
+    printf "  %-16s %-20s %s\n" "codex" "OpenAI Codex" "OpenAI coding agent (AGENTS.md)"
+    printf "  %-16s %-20s %s\n" "gemini" "Gemini CLI" "Google Gemini CLI (GEMINI.md)"
+    printf "  %-16s %-20s %s\n" "opencode" "OpenCode" "OpenCode CLI (.opencode/skills/)"
+    printf "  %-16s %-20s %s\n" "kilo" "Kilo Code" "Kilo Code (.kilo/skills/)"
+    printf "  %-16s %-20s %s\n" "openspec" "OpenSpec" "Spec-driven dev (openspec/AGENTS.md)"
     echo ""
 }
 
@@ -503,11 +545,8 @@ main() {
     # Resolve agent list
     local agents_to_run=()
     if [[ -n "$AGENT" ]]; then
-        # Split comma-separated agent names
         IFS=',' read -ra agents_to_run <<< "$AGENT"
-        # Validate each agent
         for a in "${agents_to_run[@]}"; do
-            # Trim whitespace
             a="${a#"${a%%[![:space:]]*}"}"
             a="${a%"${a##*[![:space:]]}"}"
             # shellcheck disable=SC2076
@@ -516,7 +555,6 @@ main() {
             fi
         done
     else
-        # Default to all agents
         read -ra agents_to_run <<< "$ALL_AGENTS"
     fi
 
@@ -535,11 +573,9 @@ main() {
 
     # Run install/uninstall for each agent
     for a in "${agents_to_run[@]}"; do
-        # Trim whitespace
         a="${a#"${a%%[![:space:]]*}"}"
         a="${a%"${a##*[![:space:]]}"}"
 
-        # Look up display name
         local display_name
         case "$a" in
             claude-code) display_name="Claude Code" ;;
@@ -549,6 +585,9 @@ main() {
             cline)       display_name="Cline" ;;
             codex)       display_name="OpenAI Codex" ;;
             gemini)      display_name="Gemini CLI" ;;
+            opencode)    display_name="OpenCode" ;;
+            kilo)        display_name="Kilo Code" ;;
+            openspec)    display_name="OpenSpec" ;;
             *)           display_name="$a" ;;
         esac
 

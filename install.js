@@ -4,7 +4,8 @@
  * Skills Ocean — Universal AI Agent Skills Installer
  *
  * Installs skills to various AI coding agents:
- *   Claude Code, Cursor, Windsurf, GitHub Copilot, Cline, Codex, Gemini CLI
+ *   Claude Code, Cursor, Windsurf, GitHub Copilot, Cline, OpenAI Codex,
+ *   Gemini CLI, OpenCode, Kilo Code, OpenSpec
  *
  * Usage:
  *   node install.js [options]
@@ -17,12 +18,15 @@
  *   --force            Overwrite existing files without prompting
  *   --dry-run          Preview changes without writing files
  *   --uninstall        Remove installed skills from target
+ *   --skip-score       Skip skill quality scoring after installation
+ *   --score-only       Only run scoring, skip installation
  *   -h, --help         Show help
  */
 
 'use strict';
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 // ─── Constants ───────────────────────────────────────────────────────
@@ -68,18 +72,23 @@ function discoverSkills(filterName) {
 }
 
 function extractDescription(content) {
+  // Try YAML frontmatter first
+  const fmMatch = content.match(/^---\n([\s\S]*?)\n---/);
+  if (fmMatch) {
+    const descMatch = fmMatch[1].match(/^description:\s*(.+)$/m);
+    if (descMatch) return descMatch[1].trim().substring(0, 120);
+  }
+
+  // Fallback: first non-heading, non-empty line after frontmatter
   let inFrontmatter = false;
+  let passedFrontmatter = false;
   for (const line of content.split('\n')) {
     const t = line.trim();
-    if (!inFrontmatter && t === '---') {
-      inFrontmatter = true;
-      continue;
+    if (!passedFrontmatter) {
+      if (!inFrontmatter && t === '---') { inFrontmatter = true; continue; }
+      if (inFrontmatter && t === '---') { inFrontmatter = false; passedFrontmatter = true; continue; }
+      if (inFrontmatter) continue;
     }
-    if (inFrontmatter && t === '---') {
-      inFrontmatter = false;
-      continue;
-    }
-    if (inFrontmatter) continue;
     if (!t || t.startsWith('#')) continue;
     return t.replace(/\s+/g, ' ').substring(0, 120);
   }
@@ -230,15 +239,31 @@ function removeSkillSection(filePath, skillName, opts) {
 }
 
 // ─── Agent Definitions ───────────────────────────────────────────────
+//
+// Each agent has:
+//   - name:         Display name
+//   - description:  One-line description
+//   - docs:         Link to agent's skill/docs page
+//   - install():    Function to install skills
+//   - uninstall():  Function to remove skills
+//
+// Agent categories:
+//   - file-based:   Each skill becomes a separate file (Cursor, Windsurf, Cline, etc.)
+//   - inject-based: Skills injected into a single instruction file with markers (Copilot, Codex, etc.)
+//   - native:       Direct copy to agent's native skills directory (Claude Code, OpenCode, Kilo)
 
 const agents = {
+
+  // ─── Native Agents (SKILL.md format) ─────────────────────────────
+
   'claude-code': {
     name: 'Claude Code',
-    description: 'Anthropic Claude Code CLI',
+    description: 'Anthropic Claude Code CLI — native SKILL.md in .claude/skills/',
+    docs: 'https://docs.anthropic.com/en/docs/claude-code/skills',
     install(skills, targetDir, opts) {
       for (const s of skills) {
         writeIfOk(
-          path.join(targetDir, 'skills', s.name, 'SKILL.md'),
+          path.join(targetDir, '.claude', 'skills', s.name, 'SKILL.md'),
           s.content,
           opts
         );
@@ -246,14 +271,57 @@ const agents = {
     },
     uninstall(skills, targetDir, opts) {
       for (const s of skills) {
-        removeIfOk(path.join(targetDir, 'skills', s.name, 'SKILL.md'), opts);
+        removeIfOk(path.join(targetDir, '.claude', 'skills', s.name, 'SKILL.md'), opts);
       }
     },
   },
 
-  cursor: {
+  'opencode': {
+    name: 'OpenCode',
+    description: 'OpenCode CLI — native SKILL.md in .opencode/skills/',
+    docs: 'https://opencode.ai/docs/skills/',
+    install(skills, targetDir, opts) {
+      for (const s of skills) {
+        writeIfOk(
+          path.join(targetDir, '.opencode', 'skills', s.name, 'SKILL.md'),
+          s.content,
+          opts
+        );
+      }
+    },
+    uninstall(skills, targetDir, opts) {
+      for (const s of skills) {
+        removeIfOk(path.join(targetDir, '.opencode', 'skills', s.name, 'SKILL.md'), opts);
+      }
+    },
+  },
+
+  'kilo': {
+    name: 'Kilo Code',
+    description: 'Kilo Code — native SKILL.md in .kilo/skills/',
+    docs: 'https://kilo.ai/docs/customize/skills',
+    install(skills, targetDir, opts) {
+      for (const s of skills) {
+        writeIfOk(
+          path.join(targetDir, '.kilo', 'skills', s.name, 'SKILL.md'),
+          s.content,
+          opts
+        );
+      }
+    },
+    uninstall(skills, targetDir, opts) {
+      for (const s of skills) {
+        removeIfOk(path.join(targetDir, '.kilo', 'skills', s.name, 'SKILL.md'), opts);
+      }
+    },
+  },
+
+  // ─── MDC-format Agents (Cursor / Windsurf) ──────────────────────
+
+  'cursor': {
     name: 'Cursor',
-    description: 'AI-first code editor',
+    description: 'AI-first code editor — .mdc rules in .cursor/rules/',
+    docs: 'https://docs.cursor.com/context/rules',
     install(skills, targetDir, opts) {
       for (const s of skills) {
         const mdc = [
@@ -273,17 +341,15 @@ const agents = {
     },
     uninstall(skills, targetDir, opts) {
       for (const s of skills) {
-        removeIfOk(
-          path.join(targetDir, '.cursor', 'rules', `${s.name}.mdc`),
-          opts
-        );
+        removeIfOk(path.join(targetDir, '.cursor', 'rules', `${s.name}.mdc`), opts);
       }
     },
   },
 
-  windsurf: {
+  'windsurf': {
     name: 'Windsurf',
-    description: 'AI-powered IDE by Codeium',
+    description: 'AI-powered IDE by Codeium — .mdc rules in .windsurf/rules/',
+    docs: 'https://docs.codeium.com/windsurf/memories',
     install(skills, targetDir, opts) {
       for (const s of skills) {
         const mdc = [
@@ -303,34 +369,17 @@ const agents = {
     },
     uninstall(skills, targetDir, opts) {
       for (const s of skills) {
-        removeIfOk(
-          path.join(targetDir, '.windsurf', 'rules', `${s.name}.mdc`),
-          opts
-        );
+        removeIfOk(path.join(targetDir, '.windsurf', 'rules', `${s.name}.mdc`), opts);
       }
     },
   },
 
-  copilot: {
-    name: 'GitHub Copilot',
-    description: 'AI pair programmer',
-    install(skills, targetDir, opts) {
-      const file = path.join(targetDir, '.github', 'copilot-instructions.md');
-      for (const s of skills) {
-        injectSkillSection(file, s, opts);
-      }
-    },
-    uninstall(skills, targetDir, opts) {
-      const file = path.join(targetDir, '.github', 'copilot-instructions.md');
-      for (const s of skills) {
-        removeSkillSection(file, s.name, opts);
-      }
-    },
-  },
+  // ─── File-based Agents (direct copy) ────────────────────────────
 
-  cline: {
+  'cline': {
     name: 'Cline',
-    description: 'Autonomous AI coding agent for VS Code',
+    description: 'Autonomous AI coding agent for VS Code — .md in .clinerules/',
+    docs: 'https://docs.cline.bot/features/cline-rules',
     install(skills, targetDir, opts) {
       for (const s of skills) {
         writeIfOk(
@@ -342,17 +391,35 @@ const agents = {
     },
     uninstall(skills, targetDir, opts) {
       for (const s of skills) {
-        removeIfOk(
-          path.join(targetDir, '.clinerules', `${s.name}.md`),
-          opts
-        );
+        removeIfOk(path.join(targetDir, '.clinerules', `${s.name}.md`), opts);
       }
     },
   },
 
-  codex: {
+  // ─── Injection-based Agents (single instruction file) ───────────
+
+  'copilot': {
+    name: 'GitHub Copilot',
+    description: 'AI pair programmer — injected into .github/copilot-instructions.md',
+    docs: 'https://docs.github.com/en/copilot/customizing-copilot/adding-repository-custom-instructions-for-github-copilot',
+    install(skills, targetDir, opts) {
+      const file = path.join(targetDir, '.github', 'copilot-instructions.md');
+      for (const s of skills) {
+        injectSkillSection(file, s, opts);
+      }
+    },
+    uninstall(skills, targetDir, opts) {
+      const file = path.join(targetDir, '.github', 'copilot-instructions.md');
+      for (const s of skills) {
+        removeSkillSection(file, s.name, opts);
+      }
+    },
+  },
+
+  'codex': {
     name: 'OpenAI Codex',
-    description: 'OpenAI coding agent CLI',
+    description: 'OpenAI coding agent CLI — injected into AGENTS.md',
+    docs: 'https://github.com/openai/codex',
     install(skills, targetDir, opts) {
       const file = path.join(targetDir, 'AGENTS.md');
       for (const s of skills) {
@@ -367,9 +434,10 @@ const agents = {
     },
   },
 
-  gemini: {
+  'gemini': {
     name: 'Gemini CLI',
-    description: 'Google Gemini command-line tool',
+    description: 'Google Gemini command-line tool — injected into GEMINI.md',
+    docs: 'https://github.com/google-gemini/gemini-cli',
     install(skills, targetDir, opts) {
       const file = path.join(targetDir, 'GEMINI.md');
       for (const s of skills) {
@@ -378,6 +446,24 @@ const agents = {
     },
     uninstall(skills, targetDir, opts) {
       const file = path.join(targetDir, 'GEMINI.md');
+      for (const s of skills) {
+        removeSkillSection(file, s.name, opts);
+      }
+    },
+  },
+
+  'openspec': {
+    name: 'OpenSpec',
+    description: 'Spec-driven development for AI — injected into openspec/AGENTS.md',
+    docs: 'https://github.com/Fission-AI/OpenSpec',
+    install(skills, targetDir, opts) {
+      const file = path.join(targetDir, 'openspec', 'AGENTS.md');
+      for (const s of skills) {
+        injectSkillSection(file, s, opts);
+      }
+    },
+    uninstall(skills, targetDir, opts) {
+      const file = path.join(targetDir, 'openspec', 'AGENTS.md');
       for (const s of skills) {
         removeSkillSection(file, s.name, opts);
       }
@@ -443,6 +529,13 @@ function parseArgs(argv) {
 // ─── Display ──────────────────────────────────────────────────────────
 
 function showHelp() {
+  const agentKeys = Object.keys(agents);
+  const agentLines = [];
+  for (let i = 0; i < agentKeys.length; i += 3) {
+    const chunk = agentKeys.slice(i, i + 3);
+    agentLines.push(chunk.join(', '));
+  }
+
   console.log(`
 Skills Ocean — Universal AI Agent Skills Installer
 
@@ -451,7 +544,7 @@ Usage:
 
 Options:
   --agent <names>    Target agent(s), comma-separated
-                     Choices: ${Object.keys(agents).join(', ')}
+                     Choices: ${agentLines.join('\n                     ')}
                      Default: all agents
 
   --target <path>    Target project directory (default: .)
@@ -465,15 +558,16 @@ Options:
   -h, --help         Show this help
 
 Examples:
-  node install.js                                    # Install all skills for all agents
-  node install.js --agent cursor,windsurf            # Install for specific agents
-  node install.js --skill design-with-ascii          # Install a specific skill
-  node install.js --target ~/my-project              # Install to another project
-  node install.js --agent cursor --force             # Force reinstall for Cursor
-  node install.js --uninstall --agent copilot        # Remove skills from Copilot
-  node install.js --list                             # Show available skills
-  node install.js --skip-score                       # Install without scoring
-  node install.js --score-only                       # Score only, no installation
+  node install.js                                        # All skills, all agents
+  node install.js --agent cursor,windsurf                # All skills, specific agents
+  node install.js --agent claude-code,opencode,kilo      # Native SKILL.md agents
+  node install.js --skill design-with-ascii              # One skill, all agents
+  node install.js --target ~/my-project                  # Install to another project
+  node install.js --agent cursor --force                 # Force reinstall for Cursor
+  node install.js --uninstall --agent copilot            # Remove skills from Copilot
+  node install.js --list                                 # Show available skills
+  node install.js --skip-score                           # Install without scoring
+  node install.js --score-only                           # Score only, no installation
 `.trim());
 }
 

@@ -7,6 +7,7 @@ A universal collection of skills for AI coding agents. Each skill lives in its o
 | Skill             | Command                              | Description                                                                     |
 |-------------------|--------------------------------------|---------------------------------------------------------------------------------|
 | Design with ASCII | `/design-with-ascii [type] [topic]`  | Requirement analysis, UI prototypes, UML, architecture, and DB design in ASCII  |
+| Resume Optimizer  | `/resume-optimizer [mode]`           | IT resume review and optimization — 10-dimension scoring, STAR rewrites, ATS    |
 
 ## Usage
 
@@ -28,8 +29,12 @@ node install.js --target /path/to/your/project
 ```text
 skills/
 ├── README.md                          # This file
-└── design-with-ascii/
-    └── SKILL.md                       # Skill definition and instructions
+├── design-with-ascii/
+│   └── SKILL.md                       # Visual design in ASCII art
+├── resume-optimizer/
+│   └── SKILL.md                       # IT resume review and optimization
+└── skill-optimizer/
+    └── SKILL.md                       # Skill quality analysis and improvement
 ```
 
 Each skill is a folder containing a `SKILL.md` file that defines:

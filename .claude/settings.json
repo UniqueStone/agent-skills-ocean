@@ -28,7 +28,8 @@
       "Bash(node install.js --skill design-with-ascii --agent claude-code --force --skip-score)",
       "Bash(start \"\" \"D:\\\\Code\\\\my_project\\\\angent-skills-ocean\\\\reports\\\\design-with-ascii-score.html\")",
       "Bash(node install.js --skill design-with-ascii --agent claude-code --force)",
-      "Bash(node score.js skill-optimizer)"
+      "Bash(node score.js skill-optimizer)",
+      "Bash(node score.js resume-optimizer)"
     ],
     "additionalDirectories": [
       "D:/Code/opensource/joeynyc/skillscore",

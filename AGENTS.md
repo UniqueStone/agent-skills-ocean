@@ -1,6 +1,6 @@
 # AI Agent Instructions — Skills Ocean
 
-This is a repository of reusable skills for AI coding agents. Skills are written once in a universal format and installed to any agent platform (Claude Code, Cursor, Windsurf, GitHub Copilot, Cline, OpenAI Codex, Gemini CLI) with a single command.
+This is a repository of reusable skills for AI coding agents. Skills are written once in a universal format and installed to any agent platform with a single command.
 
 ## Quick Overview
 
@@ -8,20 +8,22 @@ This is a repository of reusable skills for AI coding agents. Skills are written
 - **Language**: JavaScript/Node.js + Bash (installers and examples)
 - **Main deliverable**: `skills/{name}/SKILL.md` files
 - **Installation**: `node install.js` or `./install.sh`
-- **Active development**: GitHub Copilot, Cursor, Windsurf team adoption
+- **Specification**: [Agent Skills open spec](https://agentskills.io/)
 
 ## Repository Structure
 
 ```
-skills-ocean/
+agent-skills-ocean/
 ├── CLAUDE.md                    # Instructions for Claude Code
 ├── AGENTS.md                    # This file — agent development guide
 ├── install.js / install.sh      # Universal skill installer (Node.js + Bash)
+├── score.js                     # Skill quality scoring with HTML reports
 ├── README.md                    # User-facing quick start
 ├── skills/
 │   ├── README.md                # Skills index & creation guide
 │   └── {skill-name}/
 │       └── SKILL.md             # Universal skill definition
+└── reports/                     # Generated score reports (gitignored)
 ```
 
 ## Skill Definition Convention
@@ -39,14 +41,64 @@ Every skill is a `SKILL.md` file in `skills/{kebab-case-name}/` with these requi
 
 See [skills/README.md](skills/README.md) for detailed guidance on creating new skills.
 
+## Agent Target Formats
+
+When a skill is installed, the installer converts it to the agent's native format:
+
+### Native Agents (SKILL.md — zero conversion)
+
+| Agent | Output Location | Notes |
+|---|---|---|
+| Claude Code | `.claude/skills/{name}/SKILL.md` | Direct copy |
+| OpenCode | `.opencode/skills/{name}/SKILL.md` | Direct copy |
+| Kilo Code | `.kilo/skills/{name}/SKILL.md` | Direct copy |
+
+All three agents follow the [Agent Skills open specification](https://agentskills.io/) — `SKILL.md` with YAML frontmatter (`name`, `description`). The installer copies files directly with no format conversion.
+
+### MDC-format Agents
+
+| Agent | Output Location | Conversion |
+|---|---|---|
+| Cursor | `.cursor/rules/{name}.mdc` | Wrapped in MDC frontmatter |
+| Windsurf | `.windsurf/rules/{name}.mdc` | Wrapped in MDC frontmatter |
+
+MDC format wraps the skill content in a YAML frontmatter block:
+```yaml
+---
+description: Skill description from SKILL.md
+alwaysApply: false
+---
+
+{SKILL.md content}
+```
+
+### File-based Agents (direct copy)
+
+| Agent | Output Location | Conversion |
+|---|---|---|
+| Cline | `.clinerules/{name}.md` | Direct copy |
+
+### Injection-based Agents (single instruction file)
+
+| Agent | Output Location | Method |
+|---|---|---|
+| GitHub Copilot | `.github/copilot-instructions.md` | Injected with markers |
+| OpenAI Codex | `AGENTS.md` | Injected with markers |
+| Gemini CLI | `GEMINI.md` | Injected with markers |
+| OpenSpec | `openspec/AGENTS.md` | Injected with markers |
+
+**Markers used for injection:** `<!-- skills-ocean:start:{name} -->` and `<!-- skills-ocean:end:{name} -->`
+
+Injection allows multiple skills to coexist in a single file, with each skill safely updatable or removable without affecting others.
+
 ## Key File Purposes
 
-| File                                          | Purpose                                                                    |
-| --------------------------------------------- | -------------------------------------------------------------------------- |
-| [install.js](install.js)                      | Node.js installer — discovers skills, converts to agent formats            |
-| [install.sh](install.sh)                      | Bash installer — same functionality, cross-platform                        |
-| [SKILL.md](skills/design-with-ascii/SKILL.md) | Example skill: visual design (requirements, prototypes, UML, architecture) |
-| [README.md](README.md)                        | Installation & usage guide for end users                                   |
+| File | Purpose |
+|---|---|
+| [install.js](install.js) | Node.js installer — discovers skills, converts to agent formats |
+| [install.sh](install.sh) | Bash installer — same functionality, cross-platform |
+| [score.js](score.js) | Evaluates skills using Skillscore, generates HTML reports |
+| [SKILL.md](skills/design-with-ascii/SKILL.md) | Example skill: visual design in ASCII |
 
 ## Common Development Tasks
 
@@ -56,6 +108,14 @@ See [skills/README.md](skills/README.md) for detailed guidance on creating new s
 2. Add an entry to [skills/README.md](skills/README.md)
 3. Update the skills table in [README.md](README.md)
 4. Test with `node install.js --list` and `node install.js --dry-run`
+
+### Add Support for a New Agent
+
+1. Add a new entry to the `agents` object in `install.js`
+2. Add a new `case` block in `install_agent()` in `install.sh`
+3. Add the agent key to `ALL_AGENTS` in both files
+4. Update the agent tables in [README.md](README.md) and this file
+5. Test with `node install.js --agent <new-agent> --dry-run`
 
 ### Test the Installer
 
@@ -69,35 +129,15 @@ node install.js --dry-run
 # Install to a test project
 node install.js --target /path/to/test/project
 
+# Install specific agents
+node install.js --agent claude-code,opencode,kilo --target /path/to/test/project
+
 # Reinstall with force
 node install.js --agent cursor --force --target /path/to/test/project
 
 # Uninstall
 node install.js --uninstall --target /path/to/test/project
 ```
-
-### Verify Skill Syntax
-
-- All fenced code blocks must specify a language (MD040)
-- Tables must have aligned columns (MD060)
-- No excessive blank lines between list items (MD032)
-- Run `npm run lint` if available
-
-## Agent Target Formats
-
-When a skill is installed, the installer converts it to the agent's native format:
-
-| Agent          | Output Location                   | Format                | Installation |
-| -------------- | --------------------------------- | --------------------- | ------------ |
-| Claude Code    | `skills/{name}/SKILL.md`          | Direct copy           | Native       |
-| Cursor         | `.cursor/rules/{name}.mdc`        | MDC wrapper           | File-based   |
-| Windsurf       | `.windsurf/rules/{name}.mdc`      | MDC wrapper           | File-based   |
-| GitHub Copilot | `.github/copilot-instructions.md` | Injected with markers | Single file  |
-| Cline          | `.clinerules/{name}.md`           | Direct copy           | File-based   |
-| OpenAI Codex   | `AGENTS.md`                       | Injected with markers | Single file  |
-| Gemini CLI     | `GEMINI.md`                       | Injected with markers | Single file  |
-
-**Markers used for injection:** `<!-- skills-ocean:start:{name} -->` and `<!-- skills-ocean:end:{name} -->`
 
 ## Skill Guidelines for Agent Developers
 
@@ -108,6 +148,7 @@ When a skill is installed, the installer converts it to the agent's native forma
 3. **Code blocks**: Always specify language (`markdown`, `javascript`, `bash`, `sql`, etc.)
 4. **Examples section**: Show how to invoke in at least 2 agents (e.g., Claude Code + Cursor)
 5. **Process clarity**: Use numbered steps; avoid ambiguity in workflows
+6. **Frontmatter**: Include `name` (matching directory name) and `description` (≤1024 chars)
 
 ### Best Practices
 
@@ -125,6 +166,9 @@ node install.js
 # Install specific skill to specific agents
 node install.js --skill design-with-ascii --agent cursor,windsurf
 
+# Install native SKILL.md agents only
+node install.js --agent claude-code,opencode,kilo
+
 # Preview changes
 node install.js --dry-run
 
@@ -138,3 +182,4 @@ node install.js --list
 - [Design with ASCII Skill](skills/design-with-ascii/SKILL.md) — working example
 - [Installation Guide](README.md) — for end users installing skills to their projects
 - [CLAUDE.md](CLAUDE.md) — instructions for Claude Code specifically
+- [Agent Skills Specification](https://agentskills.io/) — open standard for SKILL.md format
